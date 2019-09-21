@@ -1,8 +1,7 @@
 # id-generator
 
-## sample
+## [example](https://github.com/sillyhatxu/id-generator/blob/master/generator_test.go)
 
-[example](https://github.com/sillyhatxu/id-generator/blob/master/generator_test.go)
 
 ```
 func TestGeneratorClient_GeneratorId(t *testing.T) {
