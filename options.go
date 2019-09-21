@@ -5,6 +5,7 @@ import (
 )
 
 type Config struct {
+	Instance       string
 	Prefix         string
 	GroupLength    int
 	SequenceFormat string
@@ -12,6 +13,12 @@ type Config struct {
 }
 
 type Option func(*Config)
+
+func Instance(instance string) Option {
+	return func(c *Config) {
+		c.Instance = instance
+	}
+}
 
 func Prefix(prefix string) Option {
 	return func(c *Config) {

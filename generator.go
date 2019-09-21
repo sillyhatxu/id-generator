@@ -72,7 +72,7 @@ func (gc GeneratorClient) GeneratorGroupId(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s%s%s%s", gc.config.Prefix, getTimeInMillis(), sequence, group), nil
+	return fmt.Sprintf("%s%s%s%s%s", gc.config.Prefix, gc.config.Instance, getTimeInMillis(), sequence, group), nil
 }
 
 func (gc GeneratorClient) formatGroup(src string) (string, error) {
