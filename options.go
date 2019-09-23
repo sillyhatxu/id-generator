@@ -1,7 +1,11 @@
 package idgenerator
 
-import (
-	"time"
+type LifeCycleType int
+
+const (
+	Second LifeCycleType = iota
+	Minute
+	Hour
 )
 
 type Config struct {
@@ -9,7 +13,7 @@ type Config struct {
 	Prefix         string
 	GroupLength    int
 	SequenceFormat string
-	LifeCycle      time.Duration
+	LifeCycle      LifeCycleType
 }
 
 type Option func(*Config)
@@ -38,7 +42,7 @@ func SequenceFormat(sequenceFormat string) Option {
 	}
 }
 
-func LifeCycle(lifeCycle time.Duration) Option {
+func LifeCycle(lifeCycle LifeCycleType) Option {
 	return func(c *Config) {
 		c.LifeCycle = lifeCycle
 	}

@@ -12,7 +12,7 @@ import (
 const (
 	defaultGroupLength    int    = 2
 	defaultSequenceFormat string = "%04d"
-	defaultLifeCycle             = 2 * time.Second
+	defaultLifeCycle             = Minute
 )
 
 type GeneratorClient struct {
@@ -72,7 +72,7 @@ func (gc GeneratorClient) GeneratorGroupId(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s%s%s%s%s", gc.config.Prefix, gc.config.Instance, getTimeInMillis(), sequence, group), nil
+	return fmt.Sprintf("%s%s%s%s%s", gc.config.Prefix, gc.config.Instance, gc.getTimeInMillis(), sequence, group), nil
 }
 
 func (gc GeneratorClient) formatGroup(src string) (string, error) {
@@ -93,11 +93,25 @@ func (gc GeneratorClient) formatGroup(src string) (string, error) {
 
 func (gc GeneratorClient) getSequence(group string) (string, error) {
 	key := fmt.Sprintf("%s%s", gc.key, group)
-	sequence, err := gc.cacheClient.IncrementInt64WithExpiration(key, gc.config.LifeCycle)
+	sequence, err := gc.cacheClient.IncrementInt64WithExpiration(key, time.Duration(gc.getLifeCycleNumber())*time.Second+500*time.Millisecond)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf(gc.config.SequenceFormat, sequence), nil
+}
+
+func (gc GeneratorClient) getTimeInMillis() string {
+	return strconv.FormatInt(time.Now().Unix()/gc.getLifeCycleNumber(), 10)
+}
+
+func (gc GeneratorClient) getLifeCycleNumber() int64 {
+	if gc.config.LifeCycle == Minute {
+		return 60
+	} else if gc.config.LifeCycle == Hour {
+		return 60 * 60
+	} else {
+		return 1
+	}
 }
 
 func hash(s string) (uint64, error) {
@@ -107,8 +121,4 @@ func hash(s string) (uint64, error) {
 		return 0, err
 	}
 	return h.Sum64(), nil
-}
-
-func getTimeInMillis() string {
-	return strconv.FormatInt(time.Now().Unix(), 10)
 }

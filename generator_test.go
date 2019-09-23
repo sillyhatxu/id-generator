@@ -3,10 +3,17 @@ package idgenerator
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 	"time"
 )
 
+func TestTimeInMillis(t *testing.T) {
+	for {
+		fmt.Println(fmt.Sprintf("%s", strconv.FormatInt(time.Now().Unix()/60, 10)))
+		time.Sleep(time.Second)
+	}
+}
 func TestGeneratorClient_GeneratorId(t *testing.T) {
 	client := NewGeneratorClient("test")
 	for i := 0; i < 100; i++ {
@@ -32,11 +39,12 @@ func TestGeneratorClient_GeneratorGroupIdInstance(t *testing.T) {
 		GroupLength(3),
 		SequenceFormat("%02d"),
 		Instance("8"),
-		LifeCycle(5*time.Second),
+		LifeCycle(Minute),
 	)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10000; i++ {
 		id, err := client.GeneratorGroupId("group")
 		assert.Nil(t, err)
 		fmt.Println(id)
+		time.Sleep(1 * time.Second)
 	}
 }
