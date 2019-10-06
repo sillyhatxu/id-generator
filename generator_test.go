@@ -15,16 +15,26 @@ func TestTimeInMillis(t *testing.T) {
 	}
 }
 func TestGeneratorClient_GeneratorId(t *testing.T) {
-	client := NewGeneratorClient("test")
+	client, err := NewGeneratorClient("test", LifeCycle(Second))
+	assert.Nil(t, err)
 	for i := 0; i < 100; i++ {
 		id, err := client.GeneratorId()
 		assert.Nil(t, err)
-		fmt.Println(id)
+		fmt.Println(time.Now().Format("2006-01-02T15:04:05"), id)
+		time.Sleep(500 * time.Millisecond)
+	}
+	iterator, err := client.cacheClient.Iterator()
+	assert.Nil(t, err)
+	for iterator.SetNext() {
+		info, err := iterator.Value()
+		assert.Nil(t, err)
+		fmt.Println(fmt.Sprintf("key : %s ; value : %s", info.Key(), string(info.Value())))
 	}
 }
 
 func TestGeneratorClient_GeneratorGroupId(t *testing.T) {
-	client := NewGeneratorClient("test", Prefix("GT"), GroupLength(3), SequenceFormat("%02d"))
+	client, err := NewGeneratorClient("test", Prefix("GT"), GroupLength(3), SequenceFormat("%02d"))
+	assert.Nil(t, err)
 	for i := 0; i < 100; i++ {
 		id, err := client.GeneratorGroupId("group")
 		assert.Nil(t, err)
@@ -33,18 +43,19 @@ func TestGeneratorClient_GeneratorGroupId(t *testing.T) {
 }
 
 func TestGeneratorClient_GeneratorGroupIdInstance(t *testing.T) {
-	client := NewGeneratorClient(
+	client, err := NewGeneratorClient(
 		"test",
 		Prefix("GT"),
 		GroupLength(3),
 		SequenceFormat("%02d"),
 		Instance("8"),
-		LifeCycle(Minute),
+		LifeCycle(Second),
 	)
-	for i := 0; i < 10000; i++ {
+	assert.Nil(t, err)
+	for i := 0; i < 500; i++ {
 		id, err := client.GeneratorGroupId("group")
 		assert.Nil(t, err)
 		fmt.Println(id)
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 }

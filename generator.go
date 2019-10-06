@@ -11,18 +11,18 @@ import (
 
 const (
 	defaultGroupLength    int    = 2
-	defaultSequenceFormat string = "%04d"
+	defaultSequenceFormat string = "%02d"
 	defaultLifeCycle             = Minute
 )
 
 type GeneratorClient struct {
 	key         string
 	config      *Config
-	cacheClient *client.CacheClient
+	cacheClient *cacheclient.CacheClient
 	mu          sync.Mutex
 }
 
-func NewGeneratorClient(key string, opts ...Option) *GeneratorClient {
+func NewGeneratorClient(key string, opts ...Option) (*GeneratorClient, error) {
 	//default
 	config := &Config{
 		Prefix:         "",
@@ -33,10 +33,25 @@ func NewGeneratorClient(key string, opts ...Option) *GeneratorClient {
 	for _, opt := range opts {
 		opt(config)
 	}
+	l, c := getLifeWindowAndCleanWindow(config.LifeCycle)
+	client, err := cacheclient.NewCacheClient(cacheclient.LifeWindow(l), cacheclient.CleanWindow(c))
+	if err != nil {
+		return nil, err
+	}
 	return &GeneratorClient{
 		key:         key,
 		config:      config,
-		cacheClient: client.NewCacheClient(),
+		cacheClient: client,
+	}, nil
+}
+
+func getLifeWindowAndCleanWindow(lifeCycle LifeCycleType) (time.Duration, time.Duration) {
+	if lifeCycle == Minute {
+		return 1 * time.Minute, 2 * time.Minute
+	} else if lifeCycle == Hour {
+		return 1 * time.Hour, 2 * time.Hour
+	} else {
+		return 1 * time.Second, 2 * time.Second
 	}
 }
 
@@ -92,22 +107,33 @@ func (gc GeneratorClient) formatGroup(src string) (string, error) {
 }
 
 func (gc GeneratorClient) getSequence(group string) (string, error) {
-	key := fmt.Sprintf("%s%s", gc.key, group)
-	sequence, err := gc.cacheClient.IncrementInt64WithExpiration(key, time.Duration(gc.getLifeCycleNumber())*time.Second+500*time.Millisecond)
+	key := fmt.Sprintf("%s_%s_%s", gc.key, group, gc.getKeySuffix())
+	sequence, err := gc.cacheClient.IncrementInt64(key)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf(gc.config.SequenceFormat, sequence), nil
 }
 
-func (gc GeneratorClient) getTimeInMillis() string {
-	return strconv.FormatInt(time.Now().Unix()/gc.getLifeCycleNumber(), 10)
+func (gc GeneratorClient) getKeySuffix() string {
+	hr, min, sec := time.Now().Clock()
+	if gc.config.LifeCycle == Minute {
+		return fmt.Sprintf("%d_%d", hr, min)
+	} else if gc.config.LifeCycle == Hour {
+		return fmt.Sprintf("%d", hr)
+	} else {
+		return fmt.Sprintf("%d_%d_%d", hr, min, sec)
+	}
 }
 
-func (gc GeneratorClient) getLifeCycleNumber() int64 {
-	if gc.config.LifeCycle == Minute {
+func (gc GeneratorClient) getTimeInMillis() string {
+	return strconv.FormatInt(time.Now().Unix()/getLifeCycleNumber(gc.config.LifeCycle), 10)
+}
+
+func getLifeCycleNumber(lifeCycle LifeCycleType) int64 {
+	if lifeCycle == Minute {
 		return 60
-	} else if gc.config.LifeCycle == Hour {
+	} else if lifeCycle == Hour {
 		return 60 * 60
 	} else {
 		return 1
